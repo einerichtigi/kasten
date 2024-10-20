@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kastenlst Live-Stream</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        header {
+            background-color: #ff0055;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        nav ul li {
+            display: inline;
+            margin: 0 15px;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .live-container, .video-container {
+            background-color: white;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 800px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: none; /* Initially hidden */
+            position: relative; /* Required for absolute positioning of like button */
+        }
+
+        video {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .live-info {
+            margin-top: 10px;
+        }
+
+        .like-section {
+            position: absolute; /* Make like button position absolute */
+            top: 10px; /* Distance from the top */
+            right: 10px; /* Distance from the right */
+            z-index: 10; /* Ensure the button is on top of the video */
+        }
+
+        .chat-container {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .chat-message {
+            margin: 5px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #ff0055;
+            color: white;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+
+        #live-buttons, #upload-buttons {
+            margin: 10px 0;
+        }
+
+        #live-buttons button, #upload-buttons button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff0055;
+            color: white;
+            cursor: pointer;
+        }
+
+        #chat-input {
+            width: 70%;
+            padding: 5px;
+            margin-right: 5px;
+        }
+
+        #send-chat {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff0055;
+            color: white;
+            cursor: pointer;
+        }
+
+        .video-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .video-item {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .video-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .like-count, .comment-count {
+            margin-left: 10px;
+        }
+
+        .full-screen-video {
+            display: none; /* Initially hidden */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .full-screen-video video {
+            width: auto;
+            height: 100%;
+        }
+
+        .close-fullscreen {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Kastenlst Live-Stream</h1>
+        <nav>
+            <ul>
+                <li><a href="#" id="home-btn">Home</a></li>
+                <li><a href="#" id="discover-btn">Entdecken</a></li>
+                <li><a href="#" id="start-live-btn">Live starten</a></li>
+                <li><a href="#">Profil</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div id="home-screen">
+            <h2>Aktuelle Live-Streams</h2>
+            <div class="live-container" id="live1">
+                <video id="live-video" autoplay muted></video>
+                <div class="live-info">
+                    <h3>Live-Stream von Person A</h3>
+                    <div id="live-buttons">
+                        <button onclick="joinLive('live1')">Live beitreten</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="live-container" id="live-session" style="display:none;">
+            <h2>Live-Stream</h2>
+            <video id="user-video" autoplay></video>
+            <video id="remote-video" autoplay></video>
+            <div class="live-info">
+                <div class="like-section">
+                    <button id="like-button">👍 Like (<span id="like-count">0</span>)</button>
+                </div>
+                <button onclick="startLive()">Live starten</button>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container" id="chat-container"></div>
+            <input type="text" id="chat-input" placeholder="Nachricht eingeben..." />
+            <button id="send-chat">Senden</button>
+        </div>
+
+        <div id="discover-section" style="display:none;">
+            <h2>Entdecken</h2>
+            <div id="upload-buttons">
+                <input type="file" id="video-upload" accept="video/*" />
+                <button id="upload-btn">Hochladen</button>
+            </div>
+            <div class="video-list" id="video-list"></div>
+        </div>
+
+        <div class="full-screen-video" id="full-screen-video">
+            <span class="close-fullscreen" onclick="closeFullscreen()">✖</span>
+            <video id="fs-video" controls></video>
+            <div class="video-info">
+                <span class="like-count">👍 <span id="fs-like-count">0</span></span>
+                <span class="comment-count">💬 <span id="fs-comment-count">0</span></span>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 Kastenlst. Alle Rechte vorbehalten.</p>
+    </footer>
+    <script>
+        let localStream;
+        let remoteStream;
+        let peerConnection;
+        const configuration = {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        };
+
+        let likeCount = 0; // Initialize like count
+        let videoCount = 0; // Initialize video count for uploads
+        const videos = []; // Array to store uploaded videos
+
+        // Event Listener für den Live starten Button
+        document.getElementById('start-live-btn').addEventListener('click', function() {
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('live-session').style.display = 'block';
+            startLive(); // Live-Stream starten
+        });
+
+        // Event Listener für den Home-Button
+        document.getElementById('home-btn').addEventListener('click', function() {
+            document.getElementById('live-session').style.display = 'none';
+            document.getElementById('home-screen').style.display = 'block';
+        });
+
+        // Event Listener für den Entdecken-Button
+        document.getElementById('discover-btn').addEventListener('click', function() {
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('discover-section').style.display = 'block';
+        });
+
+        // Event Listener für den Upload-Button
+        document.getElementById('upload-btn').addEventListener('click', function() {
+            const videoInput = document.getElementById('video-upload');
+            const file = videoInput.files[0];
+
+            if (file) {
+                const videoURL = URL.createObjectURL(file);
+                videos.push(videoURL); // Video zur Liste hinzufügen
+                videoCount++;
+                displayVideo(videoURL);
+                videoInput.value = ''; // Eingabefeld leeren
+            }
+        });
+
+        function displayVideo(videoURL) {
+            const videoList = document.getElementById('video-list');
+            const videoItem = document.createElement('div');
+            videoItem.className = 'video-item';
+
+            videoItem.innerHTML = `
+               
